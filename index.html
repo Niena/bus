@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Ashesi Bus Services</title>
+        <link rel = "stylesheet" href = "jquery.mobile-1.4.4.min.css">
+        <script src = "jquery-1.11.1.js"></script>
+        <script src = "jquery.mobile-1.4.4.min.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            var user;
+            var lat;
+            var long;
+            var username;
+
+            var busLat;
+            var busLong;
+
+
+            function getLocation()
+            {
+                if (navigator.geolocation)
+                {
+                    navigator.geolocation.watchPosition(showPosition);
+
+                }
+                else {
+                    alert("Geolocation is not supported by this browser.");
+                }
+            }
+
+            function showPosition(position)
+            {
+                lat = position.coords.latitude;
+
+                long = position.coords.longitude;
+                var r = store(goodNo);
+
+            }
+
+            function syncAjax(u) {
+                var obj = $.ajax(
+                        {url: u,
+                            async: false
+                        }
+                );
+                return $.parseJSON(obj.responseText);
+            }
+
+
+
+            function getUserDetails(id) {
+
+                var u = "busAction.php?cmd=3&id=" + id;
+                return syncAjax(u);
+            }
+
+
+
+
+
+            function login() {
+                var id = document.getElementById("ID").value;
+                var r = getUserDetails(id);
+                if (r.result == 1) {
+                    username = r.details.id;
+                    if (r.details.role == "passenger") {
+
+                        window.location = "#pageFive";
+                        viewBusDetails();
+                    }
+                    else if (r.details.role == "driver") {
+                        window.location = "#pageTwo";
+                    }
+                }
+                else {
+                    alert("ID does not exist!");
+                }
+            }
+
+            function updateSeats(seatNo) {
+                var u = "busAction.php?cmd=1&seats=" + seatNo + "&latitude=" + lat + "&longitude=" + long;
+                return syncAjax(u);
+
+
+            }
+
+            function resetSeat() {
+                $("#seats").prop("value", 30);
+                getLocation();
+                updateSeats(30);
+                location.reload();
+
+            }
+
+            function addSeat() {
+                if (document.getElementById("seats").value < 30) {
+
+
+                    var val = parseInt((document.getElementById("seats").value)) + 1;
+                    $("#seats").prop("value", val);
+                    getLocation();
+                    updateSeats(val);
+                    location.reload();
+                }
+                else
+                    alert("Bus maximum capacity reached!")
+            }
+
+            function reduceSeat() {
+                if (document.getElementById("seats").value > 0) {
+
+                    var val = (document.getElementById("seats").value) - 1;
+                    $("#seats").prop("value", val);
+                    getLocation();
+                    updateSeats(val);
+                    location.reload();
+                }
+                else
+                    alert("Bus is full!");
+            }
+
+            function getBusDetails() {
+                var u = "busAction.php?cmd=5";
+                return syncAjax(u);
+
+
+            }
+
+            function viewBusDetails() {
+                var r = getBusDetails();
+                if (r.result == 1) {
+
+                    $("#availseats").prop("value", r.details.seats);
+                    showmap(r.details.lat, r.details.long);
+                    if (r.details.seats == 0) {
+                        document.getElementById("reserveBtn").disabled = true;
+
+
+                    }
+
+                }
+                else
+                    alert("Error!");
+
+
+            }
+
+
+            function showmap(lat, long) {
+                var latlon = lat + "," + long;
+
+                var img_url = "http://maps.googleapis.com/maps/api/staticmap?center="
+                        + latlon + "&zoom=14&size=400x300&sensor=false";
+                document.getElementById("mapholder").innerHTML = "<img src='" + img_url + "'>";
+            }
+
+            function makeReserv() {
+
+                window.location = "#pageSix";
+            }
+
+            function reserveSeat(user, loc) {
+
+                var u = "busAction.php?cmd=4&user=" + user + "&location=" + loc;
+                return syncAjax(u);
+            }
+
+            function finReserve() {
+                var loc = $("#pkPoints").val();
+                var r = reserveSeat(username, loc);
+                if (r.result == 1) {
+                    alert("You have successfully reserved a seat");
+                }
+                else
+                    alert("Seat could not be reserved!");
+
+            }
+
+            function rsv() {
+                var u = "busAction.php?cmd=6";
+                return syncAjax(u);
+
+            }
+            function getRsv() {
+                var r = rsv();
+                var str;
+                var output;
+                output = "<ul data-role='listview'>";
+
+                for (i in r.details)
+                {
+                    output += "<li><a href='#'>" + r.details[i].firstname + " " +
+                            r.details[i].lastname + "--" + r.details[i].location + "</a></li>";
+                }
+
+                output += "</ul>";
+                document.getElementById("listRes").innerHTML = output;
+
+
+            }
+
+            function createUser(id, role) {
+                var u = "busAction.php?cmd=2&id=" + id + "&role=" + role;
+                return syncAjax(u);
+            }
+
+            function addUser() {
+                var pid = document.getElementById("newUser").value;
+                var rol = $("#roles").val();
+                var r = createUser(pid, rol);
+                if (r.result == 1) {
+                    alert("user created");
+                    window.location = "#pageOne";
+                }
+                else
+                    alert("Could not create user");
+
+            }
+
+            function getAcc() {
+
+                var u = "busAction.php?cmd=7";
+                return syncAjax(u);
+            }
+
+            function viewAcc() {
+                var r = getAcc();
+                if (r.result == 1) {
+
+                    $("#money").prop("value", "GHS" + r.details.total + ".00");
+                }
+                else
+                    alert("Could not get accounts!");
+
+            }
+
+
+
+
+
+
+
+        </script>
+
+    </head>
+    <body>
+        <!--Page One-->
+        <div data-role = "page" id = "pageOne">
+            <div data-role="header">
+                <a href="#pageSeven" id='signUpButton' class="ui-btn-right"  data-role="button" data-icon="">Sign up</a>
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain">
+                    <form>
+                        <label for="ID">Enter ID:</label>	
+                         <input type="text"  id="ID">
+
+                        <input type="submit" data-inline="true" onclick="login()" value="Enter" data-theme="b">
+
+
+
+                    </form>	
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+        <!--Page Two-->
+        <div data-role = "page" id = "pageTwo">
+            <div data-role="header">
+                <a href="#pageOne" class="ui-btn-left"  data-role="button" data-icon="">Sign Out</a>
+
+                <a href="#pageThree" id='rsv' class="ui-btn-right"  data-role="button" data-icon="" >Reservations</a>
+
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain">
+                    <form>
+                        <label for="seats">Available Seats</label>	
+                         <input type="text"  id="seats">
+
+                        <div data-role="controlgroup" data-type="horizontal">
+                            <input type="submit" data-inline="true" onclick="addSeat()" value="Add" >
+                            <input type="submit" data-inline="true" onclick="resetSeat()" value="Reset" >
+                            <input type="submit" data-inline="true" onclick="reduceSeat()" value="Reduce">
+
+                        </div>
+                    </form>	
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+        <!--Page Three-->
+        <div data-role = "page" id = "pageThree" onload="getRsv()">
+            <div data-role="header">
+                <a href="#pageOne" class="ui-btn-left"  data-role="button" data-icon="">Sign Out</a>
+
+                <a href="#pageFour" id='acc' class="ui-btn-right"  data-role="button" onload="viewAcc()">Accounts</a>
+
+
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain" id="listRes">
+                    <input type="submit" data-inline="true" onclick="getRsv()" value="Get list">
+                    <!--<input type="submit" data-inline="true" onclick="getRsv()" value="Add" >
+                    <ul data-role="listview" >
+
+                        <li><a href="#"> my name is khan</a></li></ul>
+                    -->
+
+
+
+
+
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>market.com</h1>
+
+            </div>
+        </div>
+        <!--Page Four-->
+        <div data-role = "page" id = "pageFour">
+            <div data-role="header">
+                <a href="#pageOne" class="ui-btn-left"  data-role="button" data-icon="">Sign Out</a>
+
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain">
+                    <input type="submit" data-inline="true" onclick="viewAcc()" value="Get Accounts">
+
+                    <label for="money">Total Amount Collected:</label>	
+                     <input type="text"  id="money">
+
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+        <!--Page Five-->
+        <div data-role = "page" id = "pageFive">
+            <div data-role="header">
+                <a href="#pageOne" class="ui-btn-left"  data-role="button" data-icon="">Sign Out</a>
+
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div >
+                    <label for="availseats">Available Seats</label>	
+                     <input type="text"  id="availseats">
+                    <input type="submit" data-inline="true" id="reserveBtn" onclick="makeReserv()" value="Reserve A Seat" data-theme="b">
+                    <label >Bus Location</label>
+                    <div id="mapholder"></div>
+
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+        <!--Page Six-->
+        <div data-role = "page" id = "pageSix">
+            <div data-role="header">
+                <h1>Ashesi Bus</h1>
+                <a href="#pageOne" class="ui-btn-left"  data-role="button" data-icon="">Sign Out</a>
+
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain">
+                    <label >Pick-up Point</label>	
+                     
+                    <select id="pkPoints">
+                        <option value="Christ The King">Christ The King</option>
+                        <option value="Kwabenya">Kwabenya</option>
+                        <option value="Abom Junction">Abom Junction</option>
+                        <option value="Berekuso">Berekuso</option>
+
+                    </select>
+                    <input type="submit" data-inline="true" id="pickUpBtn" onclick="finReserve()" value="Reserve" data-theme="b">
+
+
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+        <!--Page Seven-->
+        <div data-role = "page" id = "pageSeven">
+            <div data-role="header">
+                <h1>Ashesi Bus</h1>
+            </div>
+
+
+
+
+            <div role = "main" class = "ui-content">
+
+                 <div data-role="fieldcontain">
+                    <label for="newUser">Username:</label>	
+                     <input type="text"  id="newUser">
+                    <label for="roles">Role</label>	
+                     
+                    <select id="roles">
+                        <option value="passenger">passenger</option>
+                        <option value="driver">driver</option>
+                    </select>
+                    <input type="submit" data-inline="true" id="addBtn" onclick="addUser()" value="Submit" data-theme="b">
+
+
+                </div>
+            </div>
+
+            <div data-role="footer" >
+
+                <h1>Contact:0300 5241789</h1>
+
+            </div>
+        </div>
+
+
+
+
+    </body>
+</html>
